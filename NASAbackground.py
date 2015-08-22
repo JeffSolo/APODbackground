@@ -26,6 +26,7 @@ def createFolder(folderPath):
 	if not os.path.exists(folderPath):
 		os.makedirs(folderPath)	
 
+# set as windows wallpaper
 def setWallpaper(image):
 	try:
 		ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, image, 0)
@@ -33,7 +34,13 @@ def setWallpaper(image):
 		Error("Error setting wallpaper", LOG)
 	else: 
 		writeToFile(LOGFILE, "No errors encountered. New wallpaper set")
+
+# check to see if we've already downloaded today's image		
+def checkImageExists(image):
+	if os.path.isfile(image):
+		Error("Image already downloaded.", LOG)
 	
+# download the image from given url
 def downloadImage(url, imagePath):
 	# attempt to establish connection to URL
 	try: 
@@ -54,6 +61,7 @@ def downloadImage(url, imagePath):
 	urllib.urlretrieve(imagelink, imagePath)
 	urllib.urlcleanup()
 	
+# change image resolution
 def resizeImage(image, newSize):
 	try:
 		img = Image.open(image)
@@ -62,19 +70,23 @@ def resizeImage(image, newSize):
 	except:
 		Error("Error resizing picture", LOG)
 	
+# write to log file
 def writeToFile(file, message):
 	f = open(file, 'a+')
 	f.write(str(dt.datetime.now()) + '\n' + message + '\n\n'+ '-'*65 + '\n')
 	f.close()
 	
+# error logging
 def Error(message, log):
 	print message
 	if log:
 		writeToFile(LOGFILE, message)
 	sys.exit(-1)
 	
+	
 if __name__ == '__main__':
 	createFolder(PATH)
+	checkImageExists(SAVEIMAGE)
 	downloadImage(URL, SAVEIMAGE)
 	resizeImage(SAVEIMAGE, SIZE)
 	setWallpaper(SAVEIMAGE)
