@@ -1,54 +1,66 @@
-import ctypes
-import urllib
-import os
-import sys
+import ctypes, urllib, os, sys
 import datetime as dt
 from bs4 import BeautifulSoup
 from PIL import Image
 
-#SIZE = 1366, 768
-user32 = ctypes.windll.user32
 
+user32 = ctypes.windll.user32 # see SIZE variable
+
+# what resolution to set picture to
 SIZE = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-SPI_SETDESKWALLPAPER = 20;
-NASAURL = "http://apod.nasa.gov/"
-
-# path to save images in, change to whatever you want
+# path to save images in
 PATH = os.path.dirname(os.path.abspath(__file__)) + '\\apod\\'
-#saved image location and name
+# image path and name
 SAVEIMAGE = PATH + str(dt.date.today()) + '.jpg'
 
+URL = "http://apod.nasa.gov/"
+
+SPI_SETDESKWALLPAPER = 20; #don't change
+
 #creates folder to save images in if doesn't exist
-def createFolder():
-	if not os.path.exists(PATH):
-		os.makedirs(PATH)	
+def createFolder(folderPath):
+	if not os.path.exists(folderPath):
+		os.makedirs(folderPath)	
 
 def setWallpaper(image):
-	ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, image, 0)
+	try:
+		ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, image, 0)
+	except:
+		print "Error setting wallpaper"
+		sys.exit(-1)
 	
-def downloadNASAimage(url):
+def downloadImage(url, imagePath):
 	# attempt to establish connection to URL
 	try: 
 		html = urllib.urlopen(url)
 	except:
 		# maybe eventually write to log or other means instead
-		print "Error connecting to " + url + " . Please check URL"
+		print "Error connecting to " + url + ". Please check URL"
 		sys.exit(-1)
 		
 	# read html of URL	
 	soup = BeautifulSoup(html.read(), "html.parser")
-
-	imagelink = NASAURL + soup.img['src']
+	try:
+		#relies on there only being 1 picture...if multiple, I believe it returns first.
+		imagelink = url + soup.img['src']
+	except: 
+		print "No images found"
+		sys.exit(-1)
 	html.close()
-	urllib.urlretrieve(imagelink, SAVEIMAGE)
+	urllib.urlretrieve(imagelink, imagePath)
+	urllib.urlcleanup()
 	
-def resizeImage():
-	img = Image.open(SAVEIMAGE)
-	img = img.resize((SIZE))
-	img.save(SAVEIMAGE)
-	
+def resizeImage(image, newSize):
+	try:
+		img = Image.open(image)
+		img = img.resize((newSize))
+		img.save(image)
+	except:
+		print "Error resizing picture"
+		sys.exit(-1)
+		
 if __name__ == '__main__':
-	createFolder()
-	image = downloadNASAimage(NASAURL)
-	resizeImage()
+	createFolder(PATH)
+	downloadImage(URL, SAVEIMAGE)
+	resizeImage(SAVEIMAGE, SIZE)
 	setWallpaper(SAVEIMAGE)
