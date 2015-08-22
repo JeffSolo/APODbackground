@@ -12,8 +12,12 @@ SIZE = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 PATH = os.path.dirname(os.path.abspath(__file__)) + '\\apod\\'
 # image path and name
 SAVEIMAGE = PATH + str(dt.date.today()) + '.jpg'
-
+# url to extract image from
 URL = "http://apod.nasa.gov/"
+# whether to log errors or not
+LOG = True 
+# log path and name
+LOGFILE = os.path.dirname(os.path.abspath(__file__)) + '\\logfile.txt'
 
 SPI_SETDESKWALLPAPER = 20; #don't change
 
@@ -26,8 +30,9 @@ def setWallpaper(image):
 	try:
 		ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, image, 0)
 	except:
-		print "Error setting wallpaper"
-		sys.exit(-1)
+		Error("Error setting wallpaper", LOG)
+	else: 
+		writeToFile(LOGFILE, "No errors encountered. New wallpaper set")
 	
 def downloadImage(url, imagePath):
 	# attempt to establish connection to URL
@@ -35,18 +40,17 @@ def downloadImage(url, imagePath):
 		html = urllib.urlopen(url)
 	except:
 		# maybe eventually write to log or other means instead
-		print "Error connecting to " + url + ". Please check URL"
-		sys.exit(-1)
+		Error("Error connecting to \"" + url + "\". Please check URL", LOG)
 		
 	# read html of URL	
 	soup = BeautifulSoup(html.read(), "html.parser")
 	try:
-		#relies on there only being 1 picture...if multiple, I believe it returns first.
+		#grabs first <img> tag picture source
 		imagelink = url + soup.img['src']
 	except: 
-		print "No images found"
-		sys.exit(-1)
+		Error("Error: No images found", LOG)
 	html.close()
+	#save image
 	urllib.urlretrieve(imagelink, imagePath)
 	urllib.urlcleanup()
 	
@@ -56,9 +60,19 @@ def resizeImage(image, newSize):
 		img = img.resize((newSize))
 		img.save(image)
 	except:
-		print "Error resizing picture"
-		sys.exit(-1)
-		
+		Error("Error resizing picture", LOG)
+	
+def writeToFile(file, message):
+	f = open(file, 'a+')
+	f.write(str(dt.datetime.now()) + '\n' + message + '\n\n'+ '-'*65 + '\n')
+	f.close()
+	
+def Error(message, log):
+	print message
+	if log:
+		writeToFile(LOGFILE, message)
+	sys.exit(-1)
+	
 if __name__ == '__main__':
 	createFolder(PATH)
 	downloadImage(URL, SAVEIMAGE)
